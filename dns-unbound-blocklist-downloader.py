@@ -77,6 +77,12 @@ blocklists = {
 		'url': 'http://someonewhocares.org/hosts/hosts',
 		'regex': '',
 		'file' : 'someonewhocares.domain',
+	},
+	'Ransomware': {
+		'id': 'ransomware',
+		'url': 'https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt',
+		'regex': '',
+		'file' : 'ransomware.domain',
 	}
 }
 
