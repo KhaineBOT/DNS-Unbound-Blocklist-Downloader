@@ -8,19 +8,19 @@ import subprocess, shlex
 blocklists = {
 	'abuse.ch Feodo Tracker (Domain)': {
 		'id': 'abusefeododomain',
-		'url':  'https://feodotracker.abuse.ch/blocklist/?download=domainblocklist',
+		'url':	'https://feodotracker.abuse.ch/blocklist/?download=domainblocklist',
 		'regex' : '',
 		'file' : 'feodo.domain',
 	},
 		'abuse.ch Zeus Tracker (Domain)': {
 		'id': 'abusezeusdomain',
-		'url':  'https://zeustracker.abuse.ch/blocklist.php?download=baddomains',
+		'url':	'https://zeustracker.abuse.ch/blocklist.php?download=baddomains',
 		'regex' : '',
 		'file' : 'zeus.domain',
 	},
 	'abuse.ch Palevo Tracker (Domain)': {
 		'id': 'abusepalevodomain',
-		'url':  'https://palevotracker.abuse.ch/blocklists.php?download=domainblocklist',
+		'url':	'https://palevotracker.abuse.ch/blocklists.php?download=domainblocklist',
 		'regex' : '',
 		'file' : 'palevo.domain',
 	},
@@ -83,8 +83,63 @@ blocklists = {
 		'url': 'https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt',
 		'regex': '',
 		'file' : 'ransomware.domain',
-	}
+	},
+	#https://github.com/pi-hole/pi-hole/blob/master/adlists.default
+	'pi-hole': {
+		'id': 'pi-hole',
+		'url': 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts',
+		'regex': '',
+		'file' : 'pi-hole.domain',
+	},
+	'adblock': {
+			'id': 'adblock',
+			'url': 'http://adblock.gjtech.net/?format=unix-hosts',
+			'regex': '',
+			'file' : 'adblock.domain',
+		},
+	'disconnect-ad': {
+			'id': 'disconnect-ad',
+			'url': 'https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt',
+			'regex': '',
+			'file' : 'disconnect-ad.domain',
+		},	
+	'disconnect-tracking': {
+			'id': 'disconnect-tracking',
+			'url': 'https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt',
+			'regex': '',
+			'file' : 'disconnect-tracking.domain',
+		},
+	'Quidsups tracker list': {
+			'id': 'quidsup',
+			'url': 'https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt',
+			'regex': '',
+			'file' : 'quidsup.domain',
+		},
+	'Windows 10 telemetry list': {
+		'id': 'wintelemetry',
+		'url': 'https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/win10/spy.txt',
+		'regex': '',
+		'file' : 'wintelemetry.domain',
+		},
+	'notracking': {
+		'id': 'notracking',
+		'url': 'https://raw.githubusercontent.com/notracking/hosts-blocklists/master/hostnames.txt',
+		'regex': '',
+		'file' : 'notracking.domain',
+		}						
 }
+
+def is_valid_hostname(hostname):        
+	if hostname.endswith("."): # A single trailing dot is legal
+		hostname = hostname[:-1]	
+	if len(hostname) > 253:
+		return False
+	# must be not all-numeric, so that it can't be confused with an ip-address
+	if re.match(r"[\d.]+$", hostname):
+		return False
+
+	allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+	return all(allowed.match(x) for x in hostname.split("."))
 
 def downloadAndProcessBlocklist(url, regex, filename):
 	req = urllib2.Request(url)
@@ -146,12 +201,32 @@ for key, value in sorted(blocklists.items()):
 			print('downloading '+key)
 			output = output + downloadAndProcessBlocklist(value['url'], value['regex'], value['file'])
 
-#remove comments, duplicates and process
-output = re.sub(r'(?m)^\#.*\n?', '', output)
-listOutput = re.findall('(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', output)	
-listOutput = list(set(listOutput))
+#remove comments, duplicates, bad data and process
+output = re.sub('127.0.0.1', '', output)
+
+listOutput = output.split('\n')
+
+listOutput = [x for x in listOutput if '#' not in x]
+listOutput = [x for x in listOutput if ']' not in x]
+listOutput = [x for x in listOutput if '[' not in x]
+listOutput = [x for x in listOutput if ',' not in x]
+
+listOutput = map(str.strip, listOutput)
+
+#remove whitelist
 listOutput = [x for x in listOutput if x != "127.0.0.1"]
+listOutput = [x for x in listOutput if x != "::1"]
+listOutput = [x for x in listOutput if x != "localhost"]
 listOutput = [x for x in listOutput if x != "s3-eu-west-1.amazonaws.com"]
+
+#removes blank lines
+listOutput = filter(None, listOutput)
+
+#remove duplicates
+listOutput = list(set(listOutput))
+
+#allows only valid hostnames
+listOutput = filter(is_valid_hostname, listOutput)
 
 #write to file
 try:
@@ -174,4 +249,4 @@ except IOError as e:
 	print e.reason
 	
 #reload unbound configuration
-subprocess.check_call(shlex.split('/usr/sbin/service unbound restart'))
+subprocess.check_call(shlex.split('/usr/sbin/service local_unbound restart'))
