@@ -126,10 +126,35 @@ blocklists = {
 		'url': 'https://raw.githubusercontent.com/notracking/hosts-blocklists/master/hostnames.txt',
 		'regex': '',
 		'file' : 'notracking.domain',
-		}						
+		},
+    'Stevenblack': {
+        'id': 'stevenblack',
+        'url': 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts',
+        'regex': '',
+        'file' : 'stevenblack.domain',
+        },
+    'isc suspicious domains': {
+        'id': 'iscdomains',
+        'url': 'https://isc.sans.edu/feeds/suspiciousdomains_Medium.txt',
+        'regex': '',
+        'file' : 'isc-domains.domain',
+    },
+    'Nothink.org Malware HTTP Traffic': {
+        'id': 'nothinkhttp',
+        'url': 'http://www.nothink.org/blacklist/blacklist_malware_http.txt',
+        'regex' : '',
+        'file' : 'nothinkhttp.domain',
+    },
+    'networksec': {
+        'id': 'networksec',
+        'url': 'http://www.networksec.org/grabbho/block.txt',
+        'regex': '',
+        'file' : 'networksec.domain',
+    }
+
 }
 
-def is_valid_hostname(hostname):        
+def is_valid_hostname(hostname):
 	if hostname.endswith("."): # A single trailing dot is legal
 		hostname = hostname[:-1]	
 	if len(hostname) > 253:
@@ -143,7 +168,7 @@ def is_valid_hostname(hostname):
 
 def downloadAndProcessBlocklist(url, regex, filename):
 	req = urllib2.Request(url)
-	req.add_header('User-Agent', 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)')
+	req.add_header('User-Agent', 'Mozilla/5.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/5.0)')
 
 	contents = ''
 
